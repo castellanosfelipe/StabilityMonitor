@@ -15,7 +15,7 @@ Dos modos con la misma base de código:
 | Fase | Contenido | Estado |
 |---|---|---|
 | 1 | Núcleo: modelo de datos, checkers FTP/FTPS/SFTP/WebDAV(S), clasificación de errores, política de cortesía, máquina de incidentes, CLI | ✅ |
-| 2 | Checkers de bases de datos | pendiente |
+| 2 | Checkers de bases de datos (PostgreSQL, MySQL, MariaDB, SQL Server, Oracle thin) probados contra contenedores reales | ✅ |
 | 3 | Dashboard (FastAPI + CRUD) | pendiente |
 | 4 | Incidentes y alertas por plataforma | pendiente |
 | 5 | Gráficas y reportes autocontenidos | pendiente |
@@ -28,7 +28,8 @@ Requiere Python 3.12.
 ```bash
 python3.12 -m venv .venv
 .venv/bin/pip install -r requirements.txt -r requirements-dev.txt
-.venv/bin/python -m pytest            # suite completa
+.venv/bin/python -m pytest            # suite unitaria (sin servidores)
+MONITOR_IT=1 .venv/bin/python -m pytest tests/integration   # requiere contenedores (ver docstring)
 ```
 
 ### Probar un chequeo puntual (CLI de la Fase 1)

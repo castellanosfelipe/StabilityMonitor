@@ -104,9 +104,70 @@ ejecutar.
 build offline reproducible, `build.ps1` (Fase 6) usará `pip download` con estos
 pins exactos.
 
-### D-016 · Nota pendiente sobre `oracledb`
+### D-016 · Nota sobre `oracledb`
 La especificación lo describe como "100 % Python puro"; en realidad
 `python-oracledb` incluye una extensión compilada (Cython) aunque el modo thin
 no requiera Instant Client. Hay wheels oficiales para Windows x64, así que
-PyInstaller lo empaqueta sin fricción. Se validará en la Fase 2/6; si diera
-problemas, el plan B es cargarlo como dependencia opcional.
+PyInstaller lo empaqueta sin fricción. Validado en Fase 2 contra Oracle Free 23
+en modo thin; el empaquetado se verifica en la Fase 6.
+
+## Fase 2 — Checkers de bases de datos
+
+### D-017 · Semántica de `ssl_mode` en bases de datos
+Sigue la convención del ecosistema de cada motor (estilo libpq):
+- `disabled` → sin TLS.
+- `preferred` → comportamiento por defecto del driver. En la práctica, para
+  pg8000 y PyMySQL equivale a sin TLS (no negocian TLS oportunista); en SQL
+  Server el cifrado lo negocia el propio protocolo TDS según el servidor.
+- `required` → fuerza TLS **sin verificación de cadena** (igual que
+  `sslmode=require` de psql). Postgres: `ssl_context` sin verificación;
+  MySQL/MariaDB: `ssl={}`; Oracle: protocolo `tcps`. SQL Server: no aplica
+  (negociación TDS), documentado en el propio checker.
+La verificación completa de certificados (verify-ca/verify-full) queda fuera
+de alcance; en protocolos de archivos `required` sí verifica (D-011) porque
+ahí no existe un nivel adicional.
+
+### D-018 · Timeout de la query de salud: mecanismos por driver
+El tope de 5 s se aplica con el mejor mecanismo disponible en cada driver:
+Oracle usa la API pública `Connection.call_timeout`; pg8000 ajusta
+temporalmente el timeout del socket (`_usock`); PyMySQL ajusta
+`_read_timeout` (consultado por consulta). En SQL Server aplica el timeout de
+socket de la sesión (`timeout` de pytds, = timeout de la conexión). En todos
+los casos el timeout de conexión (`timeout_s`) actúa como límite exterior, y
+un timeout durante la query de salud se reporta como `query_timeout` (no como
+`tcp_timeout`).
+
+### D-019 · Fallo de la query de salud ⇒ DEGRADED, no DOWN
+Si la query de salud es rechazada por el validador, falla o excede su tiempo,
+la conexión queda DEGRADED con la causa correspondiente: el servidor conectó y
+autenticó; lo que falla es el contenido. DOWN queda reservado para "no conecta
+o no autentica" (RF-2). La query rechazada jamás llega al driver (validación
+también en tiempo de ejecución, verificada por test).
+
+### D-020 · BD inexistente con usuario limitado en MySQL/MariaDB
+Con un usuario de monitoreo sin privilegios globales, MySQL responde error
+1044 («access denied») en lugar de 1049 («unknown database») para no revelar
+si la base existe. Se clasifica como `permission`, distinto de `db_missing`,
+pero ambos claramente distintos de "servidor caído". Verificado contra
+contenedores reales; los tests de integración aceptan ambas causas para estos
+motores.
+
+### D-021 · Clasificación por mensaje en pytds y oracledb thin
+- pytds reporta fallos de login a veces como `LoginError` y a veces como
+  `OperationalError` plano según la ruta de código; la clasificación se hace
+  por mensaje sobre toda la familia («login failed» → `auth`, «cannot open
+  database» → `db_missing`). Descubierto contra el servidor real.
+- oracledb thin envuelve la causa raíz en el texto de `DPY-6xxx`
+  (p. ej. «Similar to ORA-12514»); los códigos `DPY-6xxx` se clasifican
+  inspeccionando el mensaje (service desconocido → `db_missing`).
+
+### D-022 · Entorno de integración local
+Los tests de integración (`tests/integration/`, activados con `MONITOR_IT=1`)
+corren contra contenedores locales: postgres:16-alpine, mysql:8.4, mariadb:11,
+gvenzl/oracle-free:23-slim-faststart y, para SQL Server en máquinas ARM donde
+la imagen oficial x64 no arranca bajo emulación, `azure-sql-edge` (ARM64
+nativo, mismo protocolo TDS). En una máquina x64 puede usarse
+`mcr.microsoft.com/mssql/server:2022-latest` con los mismos tests. Los
+comandos exactos están en el docstring de `tests/integration/test_live_databases.py`.
+Verificado además en vivo: `application_name` visible en `pg_stat_activity`
+durante el chequeo y cero sesiones remanentes al terminar.

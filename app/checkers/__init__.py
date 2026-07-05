@@ -2,6 +2,10 @@
 from __future__ import annotations
 
 from app.checkers.base import BaseChecker
+from app.checkers.db_mysql import MySqlChecker
+from app.checkers.db_oracle import OracleChecker
+from app.checkers.db_postgres import PostgresChecker
+from app.checkers.db_sqlserver import SqlServerChecker
 from app.checkers.ftp import FtpChecker
 from app.checkers.sftp import SftpChecker
 from app.checkers.webdav import WebDavChecker
@@ -13,14 +17,14 @@ _REGISTRY: dict[Protocol, type[BaseChecker]] = {
     Protocol.SFTP: SftpChecker,
     Protocol.WEBDAV: WebDavChecker,
     Protocol.WEBDAVS: WebDavChecker,
+    Protocol.POSTGRES: PostgresChecker,
+    Protocol.MYSQL: MySqlChecker,
+    Protocol.MARIADB: MySqlChecker,
+    Protocol.SQLSERVER: SqlServerChecker,
+    Protocol.ORACLE: OracleChecker,
 }
 
 
 def get_checker(protocol: Protocol) -> BaseChecker:
     """Return a fresh checker instance (checkers hold no shared mutable state)."""
-    cls = _REGISTRY.get(protocol)
-    if cls is None:
-        raise NotImplementedError(
-            f"El checker para {protocol.value} llega en la Fase 2 (bases de datos)."
-        )
-    return cls()
+    return _REGISTRY[protocol]()
