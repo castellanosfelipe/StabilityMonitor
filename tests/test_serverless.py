@@ -146,6 +146,41 @@ def test_backoff_spacing_across_invocations(tmp_path, monkeypatch):
     assert summary["checked"] == 1
 
 
+def test_backoff_escalates_across_fresh_processes(tmp_path, monkeypatch):
+    """Regresión: durante una caída sostenida, el delay debe escalar
+    120→240→300(tope) aunque cada tick sea un proceso nuevo (Vercel), no
+    quedarse clavado en interval×2. Cubre app.incidents.hydrate()."""
+    from app.throttle import backoff_delay
+    checker = FakeChecker(down())
+    monkeypatch.setattr(serverless_module, "get_checker", lambda p: checker)
+    now = utc_now()
+
+    # confirma DOWN al 1er fallo (retries=0); interval 60, tope 300
+    delays: list[float] = []
+    for n in range(1, 6):
+        ctx = make_ctx(tmp_path)  # proceso fresco cada tick
+        for cfg in ctx.db.list_connections():  # asegurar que existe la conexión
+            pass
+        if n == 1:
+            add_conn(ctx.db, "srv", interval=60, retries=0)
+        cfg = ctx.db.list_connections()[0]
+        ctx.tracker.hydrate(cfg)
+        if ctx.tracker.is_confirmed_down(cfg.id):
+            delays.append(backoff_delay(cfg.interval_s,
+                          ctx.tracker.failures_since_confirm(cfg.id),
+                          ctx.throttle.policy.backoff_cap_s))
+        else:
+            delays.append(float(cfg.interval_s))
+        ctx.tracker.record(cfg, down(), now + timedelta(seconds=n * 400))
+
+    # tick1: aún no confirmado (usa intervalo). Luego escala y satura en 300.
+    assert delays[0] == 60.0
+    assert delays[1] == 120.0   # 1 fallo previo tras confirmar
+    assert delays[2] == 240.0   # 2 fallos previos
+    assert delays[3] == 300.0   # 3 → 480 saturado a 300
+    assert delays[4] == 300.0
+
+
 def test_recovery_closes_and_alerts_in_new_process(tmp_path, monkeypatch):
     events_seen = []
 

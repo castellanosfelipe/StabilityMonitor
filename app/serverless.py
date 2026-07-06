@@ -60,6 +60,9 @@ def _due_connections(ctx: Any, now: datetime) -> list[tuple[float, ConnectionCon
         if last is None:
             due.append((float("inf"), cfg))  # nunca chequeada: máxima prioridad
             continue
+        # Rebuild streak state from history first: in a fresh serverless
+        # process the backoff exponent lives in the checks table, not memory.
+        ctx.tracker.hydrate(cfg)
         if ctx.tracker.is_confirmed_down(cfg.id):
             delay = backoff_delay(
                 cfg.interval_s,

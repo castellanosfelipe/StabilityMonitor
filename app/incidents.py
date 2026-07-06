@@ -216,6 +216,21 @@ class IncidentTracker:
 
     # --- read side (dashboard / scheduler) -----------------------------------
 
+    def hydrate(self, cfg: ConnectionConfig) -> None:
+        """Ensure this connection's streak state is rebuilt from history.
+
+        Required before querying :meth:`is_confirmed_down` /
+        :meth:`failures_since_confirm` in a *fresh* process (serverless): the
+        lazy rebuild otherwise only runs inside :meth:`record`, so a scheduling
+        decision made before the first ``record`` of the process would use the
+        stale seed (``failures_after_confirm == 1``) and the backoff would never
+        escalate past ``interval × 2`` during a sustained outage.
+        """
+        if cfg.id is None:
+            return
+        with self._lock:
+            self._state_for(cfg)
+
     def status_of(self, connection_id: int) -> Status | None:
         """Connection status with hysteresis: unconfirmed failures don't flip it."""
         with self._lock:

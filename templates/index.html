@@ -21,19 +21,19 @@
     </div>
   </header>
 
-  <div id="incident-banner" class="incident-banner hidden"></div>
+  <div id="incident-banner" class="incident-banner hidden" role="status" aria-live="polite"></div>
 
-  <section class="filters">
-    <input type="search" id="f-search" placeholder="Buscar por nombre…">
-    <select id="f-client"><option value="">Todos los clientes</option></select>
-    <select id="f-protocol">
+  <section class="filters" role="search">
+    <input type="search" id="f-search" placeholder="Buscar por nombre…" aria-label="Buscar conexiones por nombre">
+    <select id="f-client" aria-label="Filtrar por cliente"><option value="">Todos los clientes</option></select>
+    <select id="f-protocol" aria-label="Filtrar por protocolo">
       <option value="">Todos los protocolos</option>
       <option>FTP</option><option>FTPS</option><option>SFTP</option>
       <option>WEBDAV</option><option>WEBDAVS</option>
       <option>POSTGRES</option><option>MYSQL</option><option>MARIADB</option>
       <option>SQLSERVER</option><option>ORACLE</option>
     </select>
-    <select id="f-status">
+    <select id="f-status" aria-label="Filtrar por estado">
       <option value="">Todos los estados</option>
       <option value="UP">UP</option>
       <option value="DEGRADED">DEGRADED</option>
