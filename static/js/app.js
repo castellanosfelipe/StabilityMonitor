@@ -305,9 +305,42 @@ async function cardAction(id, act) {
   }
 }
 
+/* ---------- Ajustes ---------- */
+async function openSettings() {
+  const data = await api("/api/settings");
+  document.querySelectorAll("#settings-form [data-key]").forEach((el) => {
+    const v = data[el.dataset.key];
+    if (el.type === "checkbox") el.checked = v === "1";
+    else if (el.dataset.key === "smtp.password") el.value = "";
+    else el.value = v ?? "";
+  });
+  $("settings-errors").classList.add("hidden");
+  $("modal-settings").classList.remove("hidden");
+}
+
+async function saveSettings(ev) {
+  ev.preventDefault();
+  const payload = {};
+  document.querySelectorAll("#settings-form [data-key]").forEach((el) => {
+    payload[el.dataset.key] = el.type === "checkbox" ? (el.checked ? "1" : "0") : el.value;
+  });
+  try {
+    await api("/api/settings", { method: "PUT", body: JSON.stringify(payload) });
+    $("modal-settings").classList.add("hidden");
+  } catch (e) {
+    const box = $("settings-errors");
+    box.innerHTML = Array.isArray(e.detail)
+      ? "<ul>" + e.detail.map((m) => `<li>${esc(m)}</li>`).join("") + "</ul>" : esc(e.detail);
+    box.classList.remove("hidden");
+  }
+}
+
 /* ---------- Wiring ---------- */
 document.addEventListener("DOMContentLoaded", () => {
   $("btn-new").addEventListener("click", () => openForm(null));
+  $("btn-settings").addEventListener("click", () => openSettings().catch(() => {}));
+  $("btn-settings-cancel").addEventListener("click", () => $("modal-settings").classList.add("hidden"));
+  $("settings-form").addEventListener("submit", saveSettings);
   $("btn-cancel").addEventListener("click", () => $("modal-form").classList.add("hidden"));
   $("btn-detail-close").addEventListener("click", () => $("modal-detail").classList.add("hidden"));
   $("conn-form").addEventListener("submit", saveForm);

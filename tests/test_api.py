@@ -205,6 +205,38 @@ def test_healthz_ok_without_engine(tmp_path):
     assert body.json()["status"] == "ok"
 
 
+def test_settings_get_put_and_password_handling(tmp_path):
+    client, ctx = make_client(tmp_path)
+
+    body = client.get("/api/settings").json()
+    assert body["courtesy.host_spacing_s"] == "5"
+    assert body["smtp.password"] == "" and body["smtp.has_password"] is False
+
+    resp = client.put("/api/settings", json={
+        "courtesy.host_spacing_s": "8",
+        "alerts.smtp_enabled": True,
+        "smtp.host": "smtp.lan",
+        "smtp.password": "clave-smtp",
+    })
+    assert resp.status_code == 200
+    # cortesía aplicada en caliente
+    assert ctx.throttle.policy.host_spacing_s == 8.0
+    # password cifrada vía secret store, nunca en claro
+    assert ctx.db.get_setting("smtp.password") == "plain:clave-smtp"
+    body = client.get("/api/settings").json()
+    assert body["smtp.password"] == "" and body["smtp.has_password"] is True
+
+    # password vacía = conservar la anterior
+    client.put("/api/settings", json={"smtp.password": ""})
+    assert ctx.db.get_setting("smtp.password") == "plain:clave-smtp"
+
+    # validaciones
+    resp = client.put("/api/settings", json={"retention.days": "0", "clave.rara": "1"})
+    assert resp.status_code == 422
+    assert any("retention" in e for e in resp.json()["detail"])
+    assert any("desconocido" in e.lower() for e in resp.json()["detail"])
+
+
 # --- scheduler delay computation ------------------------------------------------
 
 

@@ -272,6 +272,71 @@ def connection_history(request: Request, connection_id: int, hours: int = 24) ->
     return {"checks": checks, "incidents": incidents}
 
 
+# --- ajustes (RF-7) ---------------------------------------------------------------------
+
+
+_NUMERIC_SETTING_BOUNDS: dict[str, tuple[float, float]] = {
+    "courtesy.global_concurrency": (1, 50),
+    "courtesy.host_spacing_s": (0, 300),
+    "courtesy.host_max_checks_per_min": (1, 60),
+    "courtesy.backoff_cap_s": (30, 3600),
+    "courtesy.jitter_ratio": (0, 0.5),
+    "retention.days": (1, 3650),
+    "alerts.reminder_minutes": (0, 1440),
+    "smtp.port": (1, 65535),
+}
+
+
+@router.get("/settings")
+def get_settings(request: Request) -> dict[str, Any]:
+    from app.settings_store import DEFAULTS, get_str
+
+    ctx = _ctx(request)
+    out: dict[str, Any] = {}
+    for key in DEFAULTS:
+        value = get_str(ctx.db, key)
+        if key == "smtp.password":
+            out[key] = ""  # nunca sale del servidor
+            out["smtp.has_password"] = bool(value)
+        else:
+            out[key] = value
+    return out
+
+
+@router.put("/settings")
+def put_settings(request: Request, payload: dict[str, Any]) -> dict[str, str]:
+    from app.settings_store import DEFAULTS, courtesy_policy
+
+    ctx = _ctx(request)
+    errors: list[str] = []
+    for key, raw in payload.items():
+        if key not in DEFAULTS:
+            errors.append(f"Ajuste desconocido: {key}")
+            continue
+        value = "1" if raw is True else "0" if raw is False else str(raw).strip()
+        bounds = _NUMERIC_SETTING_BOUNDS.get(key)
+        if bounds is not None:
+            try:
+                number = float(value)
+            except ValueError:
+                errors.append(f"{key}: debe ser numérico.")
+                continue
+            if not (bounds[0] <= number <= bounds[1]):
+                errors.append(f"{key}: debe estar entre {bounds[0]} y {bounds[1]}.")
+                continue
+        if key == "smtp.password":
+            if value == "":
+                continue  # vacío = conservar la guardada
+            value = _encrypt_secret(ctx, value) or ""
+        ctx.db.set_setting(key, value)
+    if errors:
+        raise HTTPException(status_code=422, detail=errors)
+    # Los parámetros de cortesía aplican en caliente (salvo la concurrencia
+    # global, que requiere reinicio: el semáforo se crea al arrancar).
+    ctx.throttle.policy = courtesy_policy(ctx.db)
+    return {"status": "ok"}
+
+
 # --- pausa global ------------------------------------------------------------------------
 
 

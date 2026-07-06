@@ -117,6 +117,8 @@ label input, label select, label textarea {
 .test-result.bad { border-color: var(--down); }
 .test-result ul { margin: 6px 0 0; padding-left: 18px; }
 
+.section-title { font-size: 13px; color: var(--muted); margin: 14px 0 8px; text-transform: uppercase; letter-spacing: .04em; }
+
 table.data { width: 100%; border-collapse: collapse; font-size: 12px; }
 table.data th, table.data td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--border); }
 table.data th { color: var(--muted); font-weight: 600; }

@@ -14,6 +14,7 @@
       <span class="muted" id="global-summary"></span>
     </div>
     <div class="topbar-actions">
+      <button id="btn-settings" class="btn ghost" title="Configuración general">⚙ Ajustes</button>
       <button id="btn-pause" class="btn ghost" title="Pausar o reanudar todos los chequeos">⏸ Pausar todo</button>
       <button id="btn-new" class="btn primary">+ Nueva conexión</button>
     </div>
@@ -99,6 +100,56 @@
           <span class="spacer"></span>
           <button type="button" id="btn-cancel" class="btn ghost">Cancelar</button>
           <button type="submit" class="btn primary" id="btn-save">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: ajustes -->
+  <div id="modal-settings" class="modal hidden">
+    <div class="modal-box">
+      <h2>Ajustes</h2>
+      <form id="settings-form" autocomplete="off">
+        <h3 class="section-title">Política de cortesía</h3>
+        <div class="grid2">
+          <label>Concurrencia global (requiere reinicio)
+            <input data-key="courtesy.global_concurrency" type="number" min="1" max="50"></label>
+          <label>Espaciado por host (s)
+            <input data-key="courtesy.host_spacing_s" type="number" min="0" max="300" step="0.5"></label>
+          <label>Máx. chequeos por host/min
+            <input data-key="courtesy.host_max_checks_per_min" type="number" min="1" max="60"></label>
+          <label>Tope de backoff (s)
+            <input data-key="courtesy.backoff_cap_s" type="number" min="30" max="3600"></label>
+        </div>
+        <h3 class="section-title">Registro y alertas</h3>
+        <div class="grid2">
+          <label>Retención del historial (días)
+            <input data-key="retention.days" type="number" min="1" max="3650"></label>
+          <label>Recordatorio si sigue caída (min, 0 = off)
+            <input data-key="alerts.reminder_minutes" type="number" min="0" max="1440"></label>
+        </div>
+        <label class="check-row"><input type="checkbox" data-key="alerts.smtp_enabled"> Alertas por correo (SMTP)</label>
+        <div class="grid2" id="smtp-fields">
+          <label>Servidor SMTP <input data-key="smtp.host" placeholder="smtp.interno.lan"></label>
+          <label>Puerto <input data-key="smtp.port" type="number" min="1" max="65535"></label>
+          <label>Usuario <input data-key="smtp.username"></label>
+          <label>Contraseña <input data-key="smtp.password" type="password" placeholder="(sin cambios)"></label>
+          <label>Remitente <input data-key="smtp.from" placeholder="monitor@empresa.lan"></label>
+          <label>Destinatarios (coma) <input data-key="smtp.to" placeholder="ops@empresa.lan"></label>
+        </div>
+        <label class="check-row"><input type="checkbox" data-key="smtp.starttls"> Usar STARTTLS</label>
+        <label class="check-row"><input type="checkbox" data-key="alerts.webhook_enabled"> Alertas por webhook HTTP</label>
+        <label>URL del webhook <input data-key="webhook.url" placeholder="http://servidor.lan/hook"></label>
+        <h3 class="section-title">Reportes (branding)</h3>
+        <div class="grid2">
+          <label>Nombre de la empresa <input data-key="branding.company"></label>
+          <label>Color de acento <input data-key="branding.accent" type="color"></label>
+        </div>
+        <div id="settings-errors" class="form-errors hidden"></div>
+        <div class="modal-actions">
+          <span class="spacer"></span>
+          <button type="button" id="btn-settings-cancel" class="btn ghost">Cancelar</button>
+          <button type="submit" class="btn primary">Guardar ajustes</button>
         </div>
       </form>
     </div>

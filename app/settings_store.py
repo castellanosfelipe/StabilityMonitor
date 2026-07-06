@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from app.db import Database
 from app.throttle import CourtesyPolicy
 
-# Defaults (spec RF-2 / RF-3 / RF-7)
+# Defaults (spec RF-2 / RF-3 / RF-4 / RF-7)
 DEFAULTS: dict[str, str] = {
     "courtesy.global_concurrency": "10",
     "courtesy.host_spacing_s": "5",
@@ -20,6 +20,17 @@ DEFAULTS: dict[str, str] = {
     "courtesy.jitter_ratio": "0.10",
     "retention.days": "365",
     "alerts.reminder_minutes": "0",  # 0 = sin recordatorios
+    "alerts.sound_enabled": "1",  # solo Windows
+    "alerts.smtp_enabled": "0",
+    "alerts.webhook_enabled": "0",
+    "smtp.host": "",
+    "smtp.port": "25",
+    "smtp.starttls": "0",
+    "smtp.username": "",
+    "smtp.password": "",
+    "smtp.from": "",
+    "smtp.to": "",
+    "webhook.url": "",
     "branding.company": "",
     "branding.accent": "#2563eb",
     "branding.logo_b64": "",
@@ -38,14 +49,20 @@ def get_int(db: Database, key: str) -> int:
     try:
         return int(float(get_str(db, key)))
     except ValueError:
-        return int(float(DEFAULTS[key]))
+        try:
+            return int(float(DEFAULTS.get(key, "0")))
+        except ValueError:
+            return 0
 
 
 def get_float(db: Database, key: str) -> float:
     try:
         return float(get_str(db, key))
     except ValueError:
-        return float(DEFAULTS[key])
+        try:
+            return float(DEFAULTS.get(key, "0"))
+        except ValueError:
+            return 0.0
 
 
 def courtesy_policy(db: Database) -> CourtesyPolicy:

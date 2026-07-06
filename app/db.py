@@ -208,6 +208,15 @@ class Database:
         self._conn().commit()
         return cur.rowcount
 
+    def purge_old_incidents(self, before_iso: str) -> int:
+        """Delete *closed* incidents older than the retention window."""
+        cur = self._conn().execute(
+            "DELETE FROM incidents WHERE ended_at IS NOT NULL AND ended_at < ?",
+            (before_iso,),
+        )
+        self._conn().commit()
+        return cur.rowcount
+
     # --- dashboard aggregates ---------------------------------------------------
 
     def uptime_counts(self, since_iso: str) -> dict[int, tuple[int, int]]:

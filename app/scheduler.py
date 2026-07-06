@@ -25,7 +25,7 @@ from app.incidents import IncidentEvent, IncidentTracker
 from app.models import CheckResult, ConnectionConfig, Status
 from app.platform.secretstore import SecretStore, SecretStoreError
 from app.throttle import Throttle, backoff_delay, jittered
-from app.util import utc_now
+from app.util import to_iso, utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -58,12 +58,14 @@ class MonitorEngine:
         throttle: Throttle,
         secret_store: SecretStore | None,
         event_sink: EventSink | None = None,
+        housekeeping: list[tuple[int, Callable[[], None]]] | None = None,
     ) -> None:
         self._db = db
         self._tracker = tracker
         self._throttle = throttle
         self._secret_store = secret_store
         self._event_sink = event_sink
+        self._housekeeping = housekeeping or []
         self._paused = threading.Event()
         # Workers beyond global concurrency so threads waiting out host courtesy
         # don't starve runnable checks.
@@ -83,7 +85,21 @@ class MonitorEngine:
             # Initial stagger so a restart doesn't fire every check at once.
             initial = 1.0 + (index % 10) + random.random() * 4.0
             self._arm(cfg.id, initial)
+        for seconds, task in self._housekeeping:
+            self._scheduler.add_job(task, trigger="interval", seconds=seconds)
+        # Nightly purge (RF-3): checks and closed incidents beyond retention.
+        self._scheduler.add_job(self.purge_old_data, trigger="cron", hour=3, minute=30)
         logger.info("scheduler iniciado con %d conexiones", len(connections))
+
+    def purge_old_data(self) -> None:
+        from app.settings_store import get_int  # local import to avoid cycles
+
+        days = max(1, get_int(self._db, "retention.days"))
+        cutoff = to_iso(utc_now() - timedelta(days=days))
+        checks = self._db.purge_old_checks(cutoff)
+        incidents = self._db.purge_old_incidents(cutoff)
+        if checks or incidents:
+            logger.info("purga: %d checks y %d incidentes anteriores a %s", checks, incidents, cutoff)
 
     def stop(self) -> None:
         self._scheduler.shutdown(wait=False)

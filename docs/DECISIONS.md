@@ -213,3 +213,38 @@ tipografías (el requisito de fuente local queda cubierto).
 La API expone solo `has_secret`; en edición, `secret=null` significa
 «conservar el guardado» y una cadena lo reemplaza. El descifrado ocurre solo
 en el proceso del monitor (chequeos y pruebas).
+
+## Fase 4 — Alertas
+
+### D-029 · Anti-spam estructural
+El anti-spam de RF-4 no es un filtro: la máquina de incidentes emite
+exactamente un `IncidentOpened` y un `IncidentClosed` por caída, así que cada
+uno produce una única alerta por canal. Los recordatorios opcionales
+(`alerts.reminder_minutes`, 0 = apagado) se controlan con un timestamp por
+incidente. Al reiniciar la app con un incidente abierto **no** se re-alerta
+(el «último aviso» se inicializa a ahora), pero los recordatorios continúan.
+
+### D-030 · Toda alerta (o su fallo) queda en `alerts_log`
+Cada intento por canal registra `ok=0/1` con el detalle del error. Un canal
+que falla (SMTP caído, webhook 500, winotify roto) nunca tumba el chequeo ni
+bloquea los demás canales.
+
+### D-031 · Sonido con `winsound` (stdlib) y .wav generado localmente
+El sonido de alerta usa `winsound` de la stdlib (no agrega dependencia) y un
+`static/sounds/alert.wav` de 17 KB generado por script (dos tonos, sin
+recursos externos). Suena solo en caída/recordatorio, no en recuperación, y
+se puede apagar con `alerts.sound_enabled`.
+
+### D-032 · Contraseña SMTP cifrada con el mismo almacén de secretos
+`smtp.password` se guarda como token `dpapi:`/`fernet:` (cifrada al guardar
+desde la API) y se descifra solo al enviar. En la API de settings la
+contraseña nunca se devuelve; el frontend muestra «(sin cambios)».
+
+### D-033 · Ajustes de cortesía en caliente, concurrencia al reiniciar
+`PUT /api/settings` reemplaza la `CourtesyPolicy` del throttle en caliente
+(espaciado, rate limit, backoff, jitter). La concurrencia global requiere
+reinicio porque el semáforo se dimensiona al arrancar; el formulario lo indica.
+
+### D-034 · Purga nocturna a las 03:30
+Job de cron diario que borra checks e incidentes *cerrados* más antiguos que
+`retention.days` (default 365). Los incidentes abiertos nunca se purgan.

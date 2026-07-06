@@ -24,6 +24,7 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
 
 from app import __version__, config
+from app.alerts import Alerter, HeadlessNotifier, Notifier
 from app.api.routes import router as api_router
 from app.db import Database
 from app.incidents import IncidentTracker
@@ -48,6 +49,8 @@ class AppContext:
     secret_store: SecretStore | None
     auth: DashboardAuth
     mode: str
+    alerter: Alerter | None = None
+    notifier: Notifier | None = None
 
 
 def resolve_auth(mode: str) -> DashboardAuth:
@@ -77,7 +80,25 @@ def build_context(mode: str | None = None, with_engine: bool = True) -> AppConte
             raise
         logger.warning("almacén de secretos no disponible: %s", exc)
         secret_store = None
-    engine = MonitorEngine(db, tracker, throttle, secret_store) if with_engine else None
+    if mode == "windows":
+        from app.platform.notify_windows import WindowsNotifier
+
+        notifier: Notifier = WindowsNotifier(db)
+    else:
+        notifier = HeadlessNotifier()
+    alerter = Alerter(db, notifier)
+    engine = (
+        MonitorEngine(
+            db,
+            tracker,
+            throttle,
+            secret_store,
+            event_sink=alerter.handle_events,
+            housekeeping=[(60, alerter.check_reminders)],
+        )
+        if with_engine
+        else None
+    )
     return AppContext(
         db=db,
         tracker=tracker,
@@ -86,6 +107,8 @@ def build_context(mode: str | None = None, with_engine: bool = True) -> AppConte
         secret_store=secret_store,
         auth=resolve_auth(mode),
         mode=mode,
+        alerter=alerter,
+        notifier=notifier,
     )
 
 
@@ -162,6 +185,21 @@ def main() -> None:
     else:
         host = "127.0.0.1"
     app = create_app()
+    ctx: AppContext = app.state.ctx
+    if mode == "windows" and ctx.engine is not None:
+        try:
+            from app.platform.tray_windows import TrayApp
+
+            def _quit() -> None:
+                ctx.engine.stop()
+                os._exit(0)
+
+            tray = TrayApp(ctx.engine, port, on_quit=_quit)
+            if ctx.notifier is not None and hasattr(ctx.notifier, "on_state_change"):
+                ctx.notifier.on_state_change = tray.set_state
+            tray.start()
+        except Exception:
+            logger.exception("no se pudo iniciar el ícono de bandeja")
     logger.info("StabilityMonitor %s — modo %s — http://%s:%d", __version__, mode, host, port)
     uvicorn.run(app, host=host, port=port, log_level="info")
 
