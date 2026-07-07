@@ -462,6 +462,19 @@ async function saveSettings(ev) {
   }
 }
 
+async function restoreBackupFile(file, resultEl) {
+  try {
+    const data = JSON.parse(await file.text());
+    const r = await api("/api/restore", { method: "POST", body: JSON.stringify(data) });
+    resultEl.textContent =
+      `Creadas ${r.connections_created}, omitidas ${r.connections_skipped}. ${r.warning}`;
+    refresh();
+  } catch (e) {
+    resultEl.textContent = "Error: " +
+      (Array.isArray(e.detail) ? e.detail.join("; ") : (e.detail || "archivo inválido"));
+  }
+}
+
 /* ---------- Wiring ---------- */
 document.addEventListener("DOMContentLoaded", () => {
   $("btn-new").addEventListener("click", () => openForm(null));
@@ -480,24 +493,25 @@ document.addEventListener("DOMContentLoaded", () => {
       b.classList.toggle("active", b === btn));
     loadCharts().catch(() => {});
   });
+  $("btn-backup").addEventListener("click", () => {
+    $("backup-result").textContent = "";
+    $("modal-backup").classList.remove("hidden");
+  });
+  $("btn-backup-close").addEventListener("click", () => $("modal-backup").classList.add("hidden"));
+  $("backup-file").addEventListener("change", async (ev) => {
+    const file = ev.target.files[0];
+    if (!file) return;
+    await restoreBackupFile(file, $("backup-result"));
+    ev.target.value = "";
+  });
   $("btn-settings").addEventListener("click", () => openSettings().catch(() => {}));
   $("btn-settings-cancel").addEventListener("click", () => $("modal-settings").classList.add("hidden"));
   $("settings-form").addEventListener("submit", saveSettings);
   $("restore-file").addEventListener("change", async (ev) => {
     const file = ev.target.files[0];
     if (!file) return;
-    try {
-      const data = JSON.parse(await file.text());
-      const r = await api("/api/restore", { method: "POST", body: JSON.stringify(data) });
-      $("restore-result").textContent =
-        `Creadas ${r.connections_created}, omitidas ${r.connections_skipped}. ${r.warning}`;
-      refresh();
-    } catch (e) {
-      $("restore-result").textContent = "Error: " +
-        (Array.isArray(e.detail) ? e.detail.join("; ") : (e.detail || "archivo inválido"));
-    } finally {
-      ev.target.value = "";
-    }
+    await restoreBackupFile(file, $("restore-result"));
+    ev.target.value = "";
   });
   $("btn-cancel").addEventListener("click", () => $("modal-form").classList.add("hidden"));
   $("btn-detail-close").addEventListener("click", () => $("modal-detail").classList.add("hidden"));

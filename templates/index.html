@@ -15,6 +15,7 @@
     </div>
     <div class="topbar-actions">
       <button id="btn-reports" class="btn ghost" title="Reportes de estabilidad por cliente">📄 Reportes</button>
+      <button id="btn-backup" class="btn ghost" title="Exportar o importar configuraciones de conexiones">Respaldo</button>
       <button id="btn-settings" class="btn ghost" title="Configuración general">⚙ Ajustes</button>
       <button id="btn-pause" class="btn ghost" title="Pausar o reanudar todos los chequeos">⏸ Pausar todo</button>
       <button id="btn-new" class="btn primary">+ Nueva conexión</button>
@@ -162,6 +163,26 @@
           <button type="submit" class="btn primary">Guardar ajustes</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Modal: respaldo / restauración -->
+  <div id="modal-backup" class="modal hidden">
+    <div class="modal-box">
+      <h2>Respaldo de conexiones</h2>
+      <p class="muted" style="margin-top:0">
+        Exporta las configuraciones de conexiones y ajustes operativos. Los secretos no se exportan:
+        al importar deberás reingresar las credenciales y reanudar las conexiones.
+      </p>
+      <div class="modal-actions">
+        <a class="btn primary" href="/api/backup" download>Exportar JSON</a>
+        <label class="btn ghost" style="margin:0;cursor:pointer">Importar JSON
+          <input type="file" id="backup-file" accept="application/json" style="display:none">
+        </label>
+        <span class="spacer"></span>
+        <button type="button" id="btn-backup-close" class="btn ghost">Cerrar</button>
+      </div>
+      <p id="backup-result" class="muted"></p>
     </div>
   </div>
 
