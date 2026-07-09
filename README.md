@@ -7,7 +7,7 @@
 
   ![Version](https://img.shields.io/badge/version-2.0.0-blue)
   ![Status](https://img.shields.io/badge/status-beta-green)
-  ![License](https://img.shields.io/badge/license-no_declarada-orange)
+  ![License](https://img.shields.io/badge/license-MIT-blue)
   ![Windows](https://img.shields.io/badge/platform-Windows_10_Pro_x64-0078D6)
   ![Tests](https://img.shields.io/badge/tests-147_passing-brightgreen)
 </div>
@@ -136,13 +136,13 @@ Para construir desde código:
 
 ```bash
 # 1. Clonar el repositorio
-git clone https://github.com/castellanosfelipe/Monitor-DB-FTP-SFTP-WebDav.git
-cd Monitor-DB-FTP-SFTP-WebDav
+git clone https://github.com/castellanosfelipe/StabilityMonitor.git
+cd StabilityMonitor
 ```
 
 #### Opción recomendada: usar el ejecutable V2
 
-1. Descarga el ejecutable V2 desde [StabilityMonitor-v2.0.0-win64.zip](https://github.com/castellanosfelipe/Monitor-DB-FTP-SFTP-WebDav/releases/download/v2.0.0/StabilityMonitor-v2.0.0-win64.zip).
+1. Descarga el ejecutable V2 desde [StabilityMonitor-v2.0.0-win64.zip](https://github.com/castellanosfelipe/StabilityMonitor/releases/download/v2.0.0/StabilityMonitor-v2.0.0-win64.zip).
 2. Copia el ZIP a la máquina Windows sin internet.
 3. Descomprime la carpeta completa.
 4. Ejecuta dentro de la carpeta:
@@ -320,8 +320,8 @@ flowchart LR
 Las contribuciones son bienvenidas. Para cambios funcionales, abre primero un issue o una conversación de diseño para alinear alcance, impacto en monitoreo y cobertura de pruebas.
 
 ```bash
-git clone https://github.com/castellanosfelipe/Monitor-DB-FTP-SFTP-WebDav.git
-cd Monitor-DB-FTP-SFTP-WebDav
+git clone https://github.com/castellanosfelipe/StabilityMonitor.git
+cd StabilityMonitor
 python -m venv .venv
 .venv/bin/pip install -r requirements.txt -r requirements-dev.txt
 .venv/bin/python -m pytest
@@ -343,7 +343,7 @@ Antes de proponer cambios grandes, revisa [`docs/DECISIONS.md`](docs/DECISIONS.m
 
 ## 📄 Licencia
 
-Este proyecto aún no incluye un archivo `LICENSE`. Hasta que se declare una licencia formal, se consideran reservados todos los derechos.
+Este proyecto está disponible bajo la licencia MIT. Consulta el archivo [`LICENSE`](LICENSE) para ver los términos completos.
 
 ---
 
