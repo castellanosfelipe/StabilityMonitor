@@ -17,7 +17,6 @@
 ## 📋 Tabla de Contenidos
 
 - [¿Qué es este proyecto?](#que-es-este-proyecto)
-- [Demo en vivo](#demo-en-vivo)
 - [Características principales](#caracteristicas-principales)
 - [Capturas de pantalla](#capturas-de-pantalla)
 - [Instalación rápida](#instalacion-rapida)
@@ -53,25 +52,6 @@ StabilityMonitor centraliza esas conexiones en un panel local, las prueba de for
 | Operaciones y soporte | Ven estado, causa, historial y tiempo de indisponibilidad desde un solo panel. |
 | DBAs y administradores de archivos | Monitorean disponibilidad y objetivos concretos con chequeos de bajo impacto. |
 | Proveedores de servicio | Entregan reportes por cliente con evidencia de disponibilidad e incidentes. |
-
----
-
-<a id="demo-en-vivo"></a>
-
-## 🎬 Demo en vivo
-
-El proyecto incluye un modo demo para evaluar el panel sin conectarse a servidores reales. Siembra conexiones ficticias, historial, incidentes y métricas de ejemplo.
-
-```bash
-python -m app.main --demo
-```
-
-Después abre `http://127.0.0.1:8090`.
-
-<div align="center">
-  <img src="assets/demo.gif" alt="Demo del panel de StabilityMonitor navegando entre tarjetas, detalle de conexión y gráficas" width="700"/>
-  <p><em>Flujo principal: revisar estado general, abrir el detalle de una conexión y analizar latencia, disponibilidad e incidentes.</em></p>
-</div>
 
 ---
 
